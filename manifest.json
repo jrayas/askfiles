@@ -1,0 +1,10 @@
+{
+	"id": "askfiles",
+	"name": "Askfiles",
+	"version": "0.1.0",
+	"minAppVersion": "1.13.4",
+	"description": "Create notes through a calm, question-by-question flow using your vault folders as the choices.",
+	"author": "Anthirayas",
+	"authorUrl": "https://github.com/jrayas",
+	"isDesktopOnly": false
+}

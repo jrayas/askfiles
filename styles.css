@@ -1,0 +1,1126 @@
+/* Askfiles — Borderless, calm note creator for Obsidian */
+
+.askfiles-root {
+	--askfiles-col-count: 3;
+	--askfiles-card-pad-y: 16px;
+	--askfiles-card-pad-x: 20px;
+	--askfiles-card-title-size: 1.05rem;
+	container-type: inline-size;
+	height: 100%;
+	overflow: hidden;
+	outline: none;
+}
+
+.askfiles-shell {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	max-width: 960px;
+	margin: 0 auto;
+	padding: 20px 32px 24px;
+	color: var(--text-normal);
+	box-sizing: border-box;
+}
+
+.askfiles-size--compact {
+	--askfiles-card-pad-y: 10px;
+	--askfiles-card-pad-x: 14px;
+	--askfiles-card-title-size: 0.95rem;
+}
+
+.askfiles-size--comfortable {
+	--askfiles-card-pad-y: 16px;
+	--askfiles-card-pad-x: 20px;
+	--askfiles-card-title-size: 1.05rem;
+}
+
+.askfiles-size--large {
+	--askfiles-card-pad-y: 22px;
+	--askfiles-card-pad-x: 26px;
+	--askfiles-card-title-size: 1.18rem;
+}
+
+/* Top Bar & Matching Monochrome Corner Icons */
+
+.askfiles-topbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	min-height: 36px;
+	margin-bottom: 12px;
+	flex-shrink: 0;
+}
+
+.askfiles-topbar-left {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	min-width: 0;
+	flex-wrap: wrap;
+}
+
+.askfiles-root button.askfiles-back-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	height: auto;
+	padding: 4px 8px;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	color: var(--text-muted);
+	font-size: 0.92rem;
+	font-weight: 400;
+	cursor: pointer;
+	border-radius: var(--radius-s);
+}
+
+.askfiles-root button.askfiles-back-btn:hover,
+.askfiles-root button.askfiles-back-btn:focus-visible {
+	color: var(--text-normal);
+	background-color: var(--background-modifier-hover);
+}
+
+.askfiles-breadcrumbs {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	flex-wrap: wrap;
+	font-size: 0.92rem;
+	color: var(--text-muted);
+}
+
+.askfiles-breadcrumb-sep {
+	color: var(--text-faint);
+	user-select: none;
+	padding: 0 2px;
+}
+
+.askfiles-root button.askfiles-breadcrumb-item {
+	height: auto;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	padding: 3px 6px;
+	color: var(--text-muted);
+	font-size: 0.92rem;
+	font-weight: 400;
+	cursor: pointer;
+	border-radius: var(--radius-s);
+}
+
+.askfiles-root button.askfiles-breadcrumb-item:hover,
+.askfiles-root button.askfiles-breadcrumb-item:focus-visible {
+	color: var(--text-normal);
+	background-color: var(--background-modifier-hover);
+}
+
+.askfiles-root button.askfiles-breadcrumb-item.is-current {
+	color: var(--text-normal);
+	font-weight: 500;
+}
+
+.askfiles-corner-icons {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-left: auto;
+	flex-shrink: 0;
+}
+
+.askfiles-root button.askfiles-corner-btn,
+.askfiles-wide-modal button.askfiles-corner-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	color: var(--text-muted);
+	opacity: 0.78;
+	cursor: pointer;
+	border-radius: var(--radius-s);
+	transition: opacity 120ms ease, background-color 120ms ease, color 120ms ease;
+}
+
+.askfiles-root button.askfiles-corner-btn:hover,
+.askfiles-root button.askfiles-corner-btn:focus-visible,
+.askfiles-root button.askfiles-corner-btn.is-active,
+.askfiles-wide-modal button.askfiles-corner-btn:hover,
+.askfiles-wide-modal button.askfiles-corner-btn:focus-visible,
+.askfiles-wide-modal button.askfiles-corner-btn.is-active {
+	color: var(--text-normal);
+	opacity: 1;
+	background-color: var(--background-modifier-hover);
+}
+
+.askfiles-line-icon {
+	display: block;
+	color: inherit;
+	flex-shrink: 0;
+}
+
+/* Main Stage & Slide Animations */
+
+.askfiles-stage {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+}
+
+@keyframes askfiles-slide-in-forward {
+	from {
+		opacity: 0;
+		transform: translateX(16px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+@keyframes askfiles-slide-in-back {
+	from {
+		opacity: 0;
+		transform: translateX(-16px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+.askfiles-stage--slide-forward {
+	animation: askfiles-slide-in-forward 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.askfiles-stage--slide-back {
+	animation: askfiles-slide-in-back 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.askfiles-stage--slide-forward,
+	.askfiles-stage--slide-back {
+		animation: none;
+	}
+}
+
+/* Question Header */
+
+.askfiles-question-header {
+	text-align: center;
+	margin: 20px auto 28px;
+	max-width: 620px;
+	flex-shrink: 0;
+}
+
+.askfiles-question-title {
+	margin: 0 0 8px;
+	font-size: 1.65rem;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+	color: var(--text-normal);
+}
+
+.askfiles-question-desc {
+	margin: 0;
+	font-size: 0.98rem;
+	color: var(--text-muted);
+}
+
+.askfiles-home-mode-pills {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	margin-top: 14px;
+	padding: 3px;
+	border-radius: var(--radius-m);
+	background-color: var(--background-modifier-hover);
+}
+
+/* Card Scroller, Grid & List */
+
+.askfiles-card-scroller {
+	flex: 1;
+	overflow-y: auto;
+	padding: 4px 4px 16px;
+	min-height: 0;
+}
+
+.askfiles-card-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+	gap: 14px 18px;
+	align-content: start;
+}
+
+.askfiles-cols--fixed .askfiles-card-grid {
+	grid-template-columns: repeat(var(--askfiles-col-count), minmax(0, 1fr));
+}
+
+.askfiles-layout--list .askfiles-card-grid {
+	grid-template-columns: 1fr;
+	max-width: 580px;
+	margin: 0 auto;
+	gap: 6px;
+}
+
+.askfiles-root button.askfiles-card {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: center;
+	text-align: left;
+	width: 100%;
+	height: auto;
+	min-height: 54px;
+	padding: var(--askfiles-card-pad-y) var(--askfiles-card-pad-x);
+	background-color: transparent;
+	border: none;
+	box-shadow: none;
+	border-radius: var(--radius-m);
+	color: var(--text-normal);
+	cursor: pointer;
+	transition: background-color 120ms ease, transform 120ms ease;
+}
+
+.askfiles-layout--list button.askfiles-card {
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	min-height: 44px;
+	padding: 12px 16px;
+}
+
+.askfiles-root button.askfiles-card:hover,
+.askfiles-root button.askfiles-card.is-focused,
+.askfiles-root button.askfiles-card:focus-visible {
+	background-color: var(--background-modifier-hover);
+	outline: none;
+}
+
+.askfiles-root button.askfiles-card.is-focused,
+.askfiles-root button.askfiles-card:focus-visible {
+	box-shadow: 0 0 0 1.5px var(--interactive-accent);
+}
+
+.askfiles-card-title-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: var(--askfiles-card-title-size);
+	font-weight: 500;
+	color: var(--text-normal);
+}
+
+.askfiles-card-icon {
+	color: var(--text-muted);
+	font-size: 0.95em;
+}
+
+.askfiles-card-name {
+	font-size: var(--askfiles-card-title-size);
+	font-weight: 500;
+	color: var(--text-normal);
+}
+
+.askfiles-card-desc {
+	margin-top: 4px;
+	font-size: 0.85rem;
+	color: var(--text-muted);
+}
+
+.askfiles-card-meta {
+	margin-top: 4px;
+	font-size: 0.82rem;
+	color: var(--text-faint);
+}
+
+.askfiles-layout--list .askfiles-card-meta {
+	margin-top: 0;
+	margin-left: auto;
+}
+
+.askfiles-card--action .askfiles-card-name {
+	color: var(--text-muted);
+}
+
+.askfiles-card--action:hover .askfiles-card-name,
+.askfiles-card--action.is-focused .askfiles-card-name {
+	color: var(--text-normal);
+}
+
+/* Quick-Jump Results & Footer Bar */
+
+.askfiles-quickjump-results {
+	max-width: 560px;
+	margin: 20px auto 0;
+	padding-top: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.askfiles-quickjump-heading {
+	font-size: 0.78rem;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--text-faint);
+	padding: 0 10px 4px;
+}
+
+.askfiles-root button.askfiles-quickjump-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	height: auto;
+	padding: 8px 12px;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	border-radius: var(--radius-s);
+	color: var(--text-normal);
+	text-align: left;
+	cursor: pointer;
+}
+
+.askfiles-root button.askfiles-quickjump-item:hover,
+.askfiles-root button.askfiles-quickjump-item.is-focused {
+	background-color: var(--background-modifier-hover);
+}
+
+.askfiles-quickjump-meta {
+	font-size: 0.8rem;
+	color: var(--text-faint);
+}
+
+.askfiles-quickjump-hint {
+	text-align: center;
+	font-size: 0.8rem;
+	color: var(--text-faint);
+	margin-top: 8px;
+}
+
+.askfiles-footer-bar {
+	margin-top: auto;
+	padding-top: 12px;
+	display: flex;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.askfiles-root input.askfiles-search-input {
+	width: 100%;
+	max-width: 420px;
+	height: auto;
+	padding: 10px 14px;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	text-align: center;
+	font-size: 0.95rem;
+	color: var(--text-normal);
+	border-radius: var(--radius-s);
+}
+
+.askfiles-root input.askfiles-search-input:focus {
+	background-color: var(--background-secondary);
+	box-shadow: none;
+	outline: none;
+}
+
+/* Centered Steps: Welcome, Empty, Naming, New Folder, Success */
+
+.askfiles-center-screen {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	flex: 1;
+	max-width: 540px;
+	margin: 0 auto;
+	width: 100%;
+	gap: 14px;
+}
+
+.askfiles-welcome-count,
+.askfiles-welcome-footnote {
+	color: var(--text-faint);
+	font-size: 0.9rem;
+	margin: 4px 0;
+}
+
+.askfiles-root input.askfiles-title-input {
+	width: 100%;
+	max-width: 420px;
+	height: auto;
+	padding: 12px 16px;
+	font-size: 1.2rem;
+	text-align: center;
+	background-color: var(--background-secondary);
+	border: none;
+	box-shadow: none;
+	border-radius: var(--radius-m);
+	color: var(--text-normal);
+	margin: 8px 0;
+}
+
+.askfiles-root input.askfiles-title-input:focus {
+	outline: none;
+	box-shadow: 0 0 0 1.5px var(--interactive-accent);
+}
+
+.askfiles-type-section {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin: 6px 0 12px;
+}
+
+.askfiles-type-label {
+	font-size: 0.9rem;
+	color: var(--text-muted);
+}
+
+.askfiles-type-pills {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.askfiles-root button.askfiles-type-pill {
+	height: auto;
+	padding: 6px 12px;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	border-radius: var(--radius-s);
+	color: var(--text-muted);
+	font-size: 0.9rem;
+	font-weight: 400;
+	cursor: pointer;
+}
+
+.askfiles-root button.askfiles-type-pill:hover {
+	color: var(--text-normal);
+	background-color: var(--background-modifier-hover);
+}
+
+.askfiles-root button.askfiles-type-pill.is-selected {
+	color: var(--text-normal);
+	background-color: var(--background-secondary);
+	font-weight: 600;
+}
+
+.askfiles-root button.askfiles-primary-action {
+	height: auto;
+	padding: 10px 22px;
+	font-size: 1rem;
+	font-weight: 500;
+	background-color: var(--background-secondary);
+	color: var(--text-normal);
+	border: none;
+	box-shadow: none;
+	border-radius: var(--radius-m);
+	cursor: pointer;
+}
+
+.askfiles-root button.askfiles-primary-action:hover,
+.askfiles-root button.askfiles-primary-action:focus-visible {
+	background-color: var(--background-modifier-hover);
+	box-shadow: 0 0 0 1.5px var(--interactive-accent);
+	outline: none;
+}
+
+.askfiles-root button.askfiles-secondary-action {
+	height: auto;
+	padding: 10px 18px;
+	font-size: 0.95rem;
+	font-weight: 400;
+	background: transparent;
+	color: var(--text-muted);
+	border: none;
+	box-shadow: none;
+	border-radius: var(--radius-m);
+	cursor: pointer;
+}
+
+.askfiles-root button.askfiles-secondary-action:hover,
+.askfiles-root button.askfiles-secondary-action:focus-visible {
+	color: var(--text-normal);
+	background-color: var(--background-modifier-hover);
+	outline: none;
+}
+
+.askfiles-inline-actions {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-wrap: wrap;
+	gap: 14px;
+	margin-top: 8px;
+}
+
+.askfiles-success-path {
+	font-size: 1.05rem;
+	color: var(--text-muted);
+	margin: 4px 0 12px;
+}
+
+/* Validation & Undo Banners */
+
+.askfiles-validation-area {
+	min-height: 24px;
+	width: 100%;
+}
+
+.askfiles-warning-box {
+	padding: 10px 16px;
+	background-color: var(--background-secondary);
+	border-radius: var(--radius-m);
+	color: var(--text-muted);
+	font-size: 0.9rem;
+}
+
+.askfiles-warning-message {
+	margin: 0 0 4px;
+	color: var(--text-normal);
+}
+
+.askfiles-warning-sub {
+	margin: 0 0 8px;
+	color: var(--text-muted);
+}
+
+.askfiles-warning-actions {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	margin-top: 6px;
+}
+
+.askfiles-root button.askfiles-inline-btn {
+	height: auto;
+	padding: 4px 10px;
+	background-color: var(--background-modifier-hover);
+	border: none;
+	box-shadow: none;
+	border-radius: var(--radius-s);
+	color: var(--text-normal);
+	font-size: 0.85rem;
+	cursor: pointer;
+}
+
+.askfiles-undo-banner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px 16px;
+	margin-bottom: 10px;
+	background-color: var(--background-secondary);
+	border-radius: var(--radius-m);
+}
+
+.askfiles-undo-title {
+	font-weight: 500;
+	font-size: 0.9rem;
+}
+
+.askfiles-undo-sub {
+	font-size: 0.82rem;
+	color: var(--text-muted);
+}
+
+.askfiles-root button.askfiles-undo-btn {
+	height: auto;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	color: var(--text-normal);
+	font-weight: 500;
+	cursor: pointer;
+}
+
+/* Slide-in In-Tab Gear Drawer & Mobile Bottom Sheet */
+
+.askfiles-gear-backdrop {
+	position: absolute;
+	inset: 0;
+	background: transparent;
+	z-index: 10;
+}
+
+.askfiles-gear-drawer {
+	position: absolute;
+	top: 48px;
+	right: 16px;
+	bottom: 16px;
+	width: 280px;
+	max-width: calc(100% - 32px);
+	background-color: var(--background-secondary);
+	border-radius: var(--radius-l);
+	padding: 20px;
+	z-index: 20;
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+	overflow-y: auto;
+	box-shadow: var(--shadow-s);
+}
+
+.askfiles-gear-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.askfiles-gear-title {
+	margin: 0;
+	font-size: 1.05rem;
+	font-weight: 600;
+}
+
+.askfiles-gear-group {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.askfiles-gear-group-label {
+	font-size: 0.78rem;
+	font-weight: 600;
+	color: var(--text-faint);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.askfiles-gear-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 4px 0;
+	font-size: 0.92rem;
+}
+
+.askfiles-gear-row--interactive {
+	cursor: pointer;
+	border-radius: var(--radius-s);
+	padding: 6px 4px;
+}
+
+.askfiles-gear-row--interactive:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.askfiles-gear-row-value {
+	color: var(--text-muted);
+	font-weight: 500;
+}
+
+.askfiles-gear-select {
+	background-color: var(--background-primary);
+	border: none;
+	border-radius: var(--radius-s);
+	color: var(--text-normal);
+	padding: 4px 8px;
+	font-size: 0.88rem;
+}
+
+.askfiles-gear-links {
+	margin-top: auto;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 6px;
+	padding-top: 8px;
+}
+
+.askfiles-gear-drawer button.askfiles-gear-link {
+	height: auto;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	padding: 4px 0;
+	color: var(--text-normal);
+	font-size: 0.9rem;
+	font-weight: 400;
+	cursor: pointer;
+}
+
+.askfiles-gear-drawer button.askfiles-gear-link--muted {
+	color: var(--text-muted);
+}
+
+.askfiles-gear-drawer button.askfiles-gear-link:hover {
+	text-decoration: underline;
+}
+
+/* Modals: Folders Tree Picker, Phrase Library, Wording, Templates, Shortcuts */
+
+.askfiles-wide-modal {
+	width: min(720px, 92vw);
+}
+
+.askfiles-modal-heading {
+	margin-top: 0;
+	margin-bottom: 16px;
+}
+
+.askfiles-folders-top {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-bottom: 18px;
+}
+
+.askfiles-folders-control-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+.askfiles-folders-label {
+	font-weight: 500;
+}
+
+.askfiles-folders-muted {
+	color: var(--text-muted);
+	font-size: 0.88rem;
+}
+
+.askfiles-inline-radios {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.askfiles-wide-modal button.askfiles-radio-btn {
+	height: auto;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	padding: 4px 10px;
+	border-radius: var(--radius-s);
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.askfiles-wide-modal button.askfiles-radio-btn.is-selected,
+.askfiles-wide-modal button.askfiles-radio-btn:hover {
+	color: var(--text-normal);
+	background-color: var(--background-modifier-hover);
+}
+
+.askfiles-tree-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin: 14px 0 8px;
+}
+
+.askfiles-section-subtitle {
+	font-weight: 600;
+	font-size: 0.95rem;
+}
+
+.askfiles-tree-filter {
+	max-width: 220px;
+}
+
+.askfiles-tree-container,
+.askfiles-phrases-list {
+	max-height: 280px;
+	overflow-y: auto;
+	padding: 8px;
+	background-color: var(--background-secondary);
+	border-radius: var(--radius-m);
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.askfiles-tree-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 4px 8px;
+	padding-left: calc(8px + var(--askfiles-tree-indent, 0px));
+	border-radius: var(--radius-s);
+}
+
+.askfiles-tree-row:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.askfiles-tree-left,
+.askfiles-tree-right {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.askfiles-wide-modal button.askfiles-tree-chevron {
+	height: auto;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	padding: 0 4px;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.askfiles-tree-chevron-spacer {
+	display: inline-block;
+	width: 18px;
+}
+
+.askfiles-wide-modal button.askfiles-tree-name {
+	height: auto;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	padding: 2px 4px;
+	color: var(--text-normal);
+	cursor: pointer;
+	text-align: left;
+}
+
+.askfiles-tree-status {
+	font-size: 0.8rem;
+	padding: 2px 6px;
+	border-radius: var(--radius-s);
+}
+
+.askfiles-tree-status.is-hidden {
+	color: var(--text-faint);
+}
+
+.askfiles-tree-status.is-exception {
+	color: var(--text-normal);
+	background-color: var(--background-primary);
+}
+
+.askfiles-wide-modal button.askfiles-tree-scope-btn {
+	height: auto;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	font-size: 0.8rem;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.askfiles-scope-popover,
+.askfiles-subform {
+	margin: 8px 0 12px;
+	padding: 14px;
+	background-color: var(--background-primary);
+	border-radius: var(--radius-m);
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.askfiles-scope-title,
+.askfiles-subform-title {
+	margin: 0;
+	font-weight: 600;
+	font-size: 0.95rem;
+}
+
+.askfiles-scope-options {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 4px;
+}
+
+.askfiles-scope-action-row,
+.askfiles-subform-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.askfiles-subform-input {
+	flex: 1;
+}
+
+.askfiles-rules-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	max-height: 160px;
+	overflow-y: auto;
+	padding: 8px;
+	background-color: var(--background-secondary);
+	border-radius: var(--radius-m);
+}
+
+.askfiles-rule-row,
+.askfiles-phrase-row,
+.askfiles-table-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 6px 8px;
+	border-radius: var(--radius-s);
+}
+
+.askfiles-table-row--head {
+	font-weight: 600;
+	color: var(--text-muted);
+}
+
+.askfiles-table-cell {
+	flex: 1;
+	min-width: 0;
+}
+
+.askfiles-table-cell--action {
+	flex: 0 0 auto;
+}
+
+.askfiles-wide-modal button.askfiles-level-header {
+	height: auto;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	text-align: left;
+	font-weight: 600;
+	padding: 6px 4px;
+	color: var(--text-normal);
+	cursor: pointer;
+}
+
+.askfiles-wide-modal button.askfiles-phrase-toggle {
+	height: auto;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	cursor: pointer;
+	padding: 2px 6px;
+}
+
+.askfiles-phrase-title {
+	font-weight: 500;
+	flex: 1;
+	cursor: pointer;
+}
+
+.askfiles-phrase-desc {
+	color: var(--text-muted);
+	flex: 1;
+	font-size: 0.88rem;
+}
+
+.askfiles-phrase-row.is-disabled {
+	opacity: 0.6;
+}
+
+.askfiles-json-textarea {
+	width: 100%;
+	min-height: 120px;
+	font-family: var(--font-monospace);
+	font-size: 0.82rem;
+}
+
+.askfiles-modal-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin-top: 18px;
+}
+
+.askfiles-modal-actions {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.askfiles-radio-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+	border-radius: var(--radius-s);
+	cursor: pointer;
+}
+
+.askfiles-radio-row:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.askfiles-shortcut-input {
+	width: 56px;
+	text-align: center;
+}
+
+/* Mobile & Narrow Viewport Collapse (< 600px) */
+
+@container (max-width: 600px) {
+	.askfiles-shell {
+		padding: 14px 16px 18px;
+	}
+
+	.askfiles-card-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 10px 12px;
+	}
+
+	.askfiles-gear-drawer {
+		top: auto;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		width: 100%;
+		max-width: 100%;
+		max-height: 75vh;
+		border-radius: var(--radius-l) var(--radius-l) 0 0;
+		box-sizing: border-box;
+	}
+}
+
+@media (max-width: 600px) {
+	.askfiles-shell {
+		padding: 14px 16px 18px;
+	}
+
+	.askfiles-card-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 10px 12px;
+	}
+
+	.askfiles-gear-drawer {
+		top: auto;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		width: 100%;
+		max-width: 100%;
+		max-height: 75vh;
+		border-radius: var(--radius-l) var(--radius-l) 0 0;
+		box-sizing: border-box;
+	}
+}
