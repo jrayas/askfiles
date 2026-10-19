@@ -270,6 +270,25 @@ export class AskfilesSettingTab extends PluginSettingTab {
 							});
 						},
 					},
+					{
+						name: "Write as a single breadcrumb property",
+						desc: "Combine the folder path into one property (for example: Knowledge/Physics/Electrical) so only the breadcrumb and note type are written.",
+						control: {
+							type: "toggle",
+							key: "writeBreadcrumbProperty",
+							defaultValue: false,
+						},
+					},
+					{
+						name: "Breadcrumb property name",
+						desc: "Property name used for the single combined folder path.",
+						control: {
+							type: "text",
+							key: "breadcrumbPropertyName",
+							defaultValue: "breadcrumb",
+							placeholder: "breadcrumb",
+						},
+					},
 				],
 			},
 

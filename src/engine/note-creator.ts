@@ -160,7 +160,7 @@ export class NoteCreator {
 		const templateBody = await this.loadTemplateContent(params.noteType);
 		const file = await this.app.vault.create(fullPath, templateBody);
 
-		if (settings.writeProperties) {
+		if (settings.writeProperties || settings.writeBreadcrumbProperty) {
 			const rootNorm = normalizeFolderPath(settings.rootFolder);
 			let relativePath = normFolder;
 			if (rootNorm && relativePath.startsWith(rootNorm)) {
@@ -178,12 +178,21 @@ export class NoteCreator {
 				await this.app.fileManager.processFrontMatter(
 					file,
 					(frontmatter: Record<string, unknown>) => {
-						for (let i = 0; i < segments.length; i++) {
-							const seg = segments[i];
-							if (!seg) continue;
-							const propKey =
-								propNames[i]?.trim() || `level_${i + 1}`;
-							frontmatter[propKey] = seg;
+						if (settings.writeBreadcrumbProperty) {
+							if (segments.length > 0) {
+								const bcKey =
+									settings.breadcrumbPropertyName.trim() ||
+									"breadcrumb";
+								frontmatter[bcKey] = segments.join("/");
+							}
+						} else if (settings.writeProperties) {
+							for (let i = 0; i < segments.length; i++) {
+								const seg = segments[i];
+								if (!seg) continue;
+								const propKey =
+									propNames[i]?.trim() || `level_${i + 1}`;
+								frontmatter[propKey] = seg;
+							}
 						}
 						if (
 							settings.enableNoteTypes &&

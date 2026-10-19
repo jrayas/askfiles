@@ -125,6 +125,8 @@ export const DEFAULT_SETTINGS: AskfilesSettings = {
 
 	writeProperties: true,
 	levelPropertyNames: ["category", "domain", "subdomain"],
+	writeBreadcrumbProperty: false,
+	breadcrumbPropertyName: "breadcrumb",
 	typePropertyName: "type",
 
 	scanMode: "include-all",

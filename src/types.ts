@@ -86,6 +86,8 @@ export interface AskfilesSettings {
 
 	writeProperties: boolean;
 	levelPropertyNames: string[];
+	writeBreadcrumbProperty: boolean;
+	breadcrumbPropertyName: string;
 	typePropertyName: string;
 
 	scanMode: ScanMode;
