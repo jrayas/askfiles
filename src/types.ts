@@ -138,7 +138,9 @@ export interface DomainParentMatch {
 
 export interface DomainCardItem {
 	domainName: string;
+	relativePath: string;
 	parents: DomainParentMatch[];
 	totalVisibleSubfolders: number;
 	totalNotes: number;
 }
+

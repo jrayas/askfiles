@@ -41,7 +41,7 @@ interface UndoBannerState {
 export class AskfilesView extends ItemView {
 	private step: WizardStep = "browse";
 	private startBrowseMode: StartBrowseMode = "category";
-	private pendingDomainItem: DomainCardItem | null = null;
+	private domainRelativePath = "";
 	private currentFolderPath = "";
 	private filterQuery = "";
 	private activeCardIndex = 0;
@@ -141,9 +141,23 @@ export class AskfilesView extends ItemView {
 			this.renderView();
 		});
 
-		this.registerDomEvent(this.contentEl, "keydown", (evt: KeyboardEvent) => {
+		this.registerDomEvent(window, "keydown", (evt: KeyboardEvent) => {
+			if (this.app.workspace.getMostRecentLeaf() !== this.leaf) {
+				return;
+			}
+			if (document.body.querySelector(".modal-container, .menu")) {
+				return;
+			}
 			this.handleKeydown(evt);
 		});
+
+		this.registerEvent(
+			this.app.workspace.on("active-leaf-change", (leaf) => {
+				if (leaf === this.leaf) {
+					this.restoreStepFocus();
+				}
+			}),
+		);
 
 		this.renderView();
 		return Promise.resolve();
@@ -174,6 +188,9 @@ export class AskfilesView extends ItemView {
 	}
 
 	private isAtRootLevel(): boolean {
+		if (this.startBrowseMode === "domain" && this.domainRelativePath) {
+			return false;
+		}
 		return (
 			normalizeFolderPath(this.currentFolderPath) ===
 			this.getRootBasePath()
@@ -182,16 +199,63 @@ export class AskfilesView extends ItemView {
 
 	private getCurrentFolderDisplayName(): string {
 		if (this.isAtRootLevel()) return "Home";
+		if (
+			this.startBrowseMode === "domain" &&
+			this.domainRelativePath &&
+			this.step !== "naming"
+		) {
+			const relParts = this.domainRelativePath
+				.split("/")
+				.filter(Boolean);
+			return relParts[relParts.length - 1] ?? "Home";
+		}
 		const norm = normalizeFolderPath(this.currentFolderPath);
 		const parts = norm.split("/").filter(Boolean);
 		return parts[parts.length - 1] ?? "Home";
 	}
 
-	private getBreadcrumbSegments(): Array<{ label: string; path: string }> {
+	private getBreadcrumbSegments(): Array<{
+		label: string;
+		path: string;
+		isDomainRelative?: boolean;
+	}> {
 		const rootPath = this.getRootBasePath();
-		const segments: Array<{ label: string; path: string }> = [
-			{ label: "Home", path: rootPath },
-		];
+		const segments: Array<{
+			label: string;
+			path: string;
+			isDomainRelative?: boolean;
+		}> = [{ label: "Home", path: rootPath }];
+
+		if (this.startBrowseMode === "domain" && this.domainRelativePath) {
+			const relParts = this.domainRelativePath
+				.split("/")
+				.filter(Boolean);
+			let accumRel = "";
+			for (const part of relParts) {
+				accumRel = accumRel ? `${accumRel}/${part}` : part;
+				segments.push({
+					label: part,
+					path: accumRel,
+					isDomainRelative: true,
+				});
+			}
+			if (this.step === "naming" && this.currentFolderPath) {
+				const norm = normalizeFolderPath(this.currentFolderPath);
+				let rel = norm;
+				if (rootPath && norm.startsWith(`${rootPath}/`)) {
+					rel = norm.slice(rootPath.length + 1);
+				}
+				const catName = rel.split("/").filter(Boolean)[0];
+				if (catName) {
+					segments.push({
+						label: catName,
+						path: this.domainRelativePath,
+						isDomainRelative: true,
+					});
+				}
+			}
+			return segments;
+		}
 
 		const norm = normalizeFolderPath(this.currentFolderPath);
 		if (!norm || norm === rootPath) {
@@ -224,6 +288,7 @@ export class AskfilesView extends ItemView {
 			return;
 		}
 
+		this.domainRelativePath = "";
 		this.currentFolderPath = norm;
 		this.filterQuery = "";
 		this.activeCardIndex = 0;
@@ -244,9 +309,71 @@ export class AskfilesView extends ItemView {
 		this.renderView();
 	}
 
+	private navigateToDomainRelativePath(
+		relPath: string,
+		direction: SlideDirection = "forward",
+	): void {
+		const normRel = normalizeFolderPath(relPath);
+		this.domainRelativePath = normRel;
+		this.filterQuery = "";
+		this.activeCardIndex = 0;
+		this.activeQuickJumpIndex = 0;
+		this.slideDirection = direction;
+
+		if (!normRel) {
+			this.currentFolderPath = this.getRootBasePath();
+			this.step = "browse";
+			this.renderView();
+			return;
+		}
+
+		const childDomains = this.folderEngine.getDomainItems(normRel);
+		if (childDomains.length > 0) {
+			this.step = "browse";
+		} else {
+			this.step = "pick-category";
+		}
+		this.renderView();
+	}
+
 	private navigateUpOneLevel(): void {
+		if (this.startBrowseMode === "domain" && this.domainRelativePath) {
+			if (this.step === "naming" || this.step === "new-folder") {
+				this.step = "pick-category";
+				this.activeCardIndex = 0;
+				this.slideDirection = "back";
+				this.renderView();
+				return;
+			}
+
+			if (this.step === "pick-category") {
+				const childDomains = this.folderEngine.getDomainItems(
+					this.domainRelativePath,
+				);
+				if (childDomains.length > 0) {
+					this.step = "browse";
+					this.activeCardIndex = 0;
+					this.slideDirection = "back";
+					this.renderView();
+					return;
+				}
+			}
+
+			const relParts = this.domainRelativePath
+				.split("/")
+				.filter(Boolean);
+			relParts.pop();
+			const parentRel = relParts.join("/");
+			this.domainRelativePath = parentRel;
+			this.step = "browse";
+			this.activeCardIndex = 0;
+			this.slideDirection = "back";
+			this.renderView();
+			return;
+		}
+
 		if (this.step === "pick-category") {
-			this.pendingDomainItem = null;
+			this.domainRelativePath = "";
 			this.step = "browse";
 			this.slideDirection = "back";
 			this.renderView();
@@ -308,7 +435,7 @@ export class AskfilesView extends ItemView {
 							? "deeper"
 							: "top"
 						: "deeper";
-		const key = `${this.step}:${level}:${this.startBrowseMode}:${this.currentFolderPath}:${this.plugin.store.getEffectiveLayout(this.currentFolderPath).phraseMode}`;
+		const key = `${this.step}:${level}:${this.startBrowseMode}:${this.domainRelativePath}:${this.currentFolderPath}:${this.plugin.store.getEffectiveLayout(this.currentFolderPath).phraseMode}`;
 		if (this.currentPhraseKey !== key) {
 			this.currentPhraseKey = key;
 			this.currentPhrase = this.phraseEngine.resolvePhraseForStep(
@@ -319,6 +446,7 @@ export class AskfilesView extends ItemView {
 		}
 		return this.currentPhrase;
 	}
+
 
 	public renderView(): void {
 		const { contentEl } = this;
@@ -398,6 +526,38 @@ export class AskfilesView extends ItemView {
 
 			const drawer = shell.createDiv({ cls: "askfiles-gear-drawer" });
 			this.gearPanel.render(drawer);
+		} else {
+			this.restoreStepFocus();
+		}
+	}
+
+	private restoreStepFocus(): void {
+		const activeEl = document.activeElement;
+		if (
+			activeEl instanceof HTMLInputElement ||
+			activeEl instanceof HTMLTextAreaElement ||
+			activeEl instanceof HTMLSelectElement
+		) {
+			if (this.contentEl.contains(activeEl)) {
+				return;
+			}
+		}
+
+		if (this.step === "browse" || this.step === "pick-category") {
+			window.setTimeout(() => {
+				const focusedCard =
+					this.contentEl.querySelector<HTMLButtonElement>(
+						".askfiles-card.is-focused",
+					) ??
+					this.contentEl.querySelector<HTMLButtonElement>(
+						".askfiles-card",
+					);
+				if (focusedCard) {
+					focusedCard.focus({ preventScroll: true });
+				} else {
+					this.contentEl.focus({ preventScroll: true });
+				}
+			}, 0);
 		}
 	}
 
@@ -445,24 +605,23 @@ export class AskfilesView extends ItemView {
 				});
 				if (
 					idx === crumbs.length - 1 &&
-					(this.step === "browse" || this.step === "empty")
+					(this.step === "browse" ||
+						this.step === "pick-category" ||
+						this.step === "empty")
 				) {
 					crumbBtn.addClass("is-current");
 				}
 				crumbBtn.addEventListener("click", () => {
-					this.navigateToFolder(crumb.path, "back");
+					if (idx === 0) {
+						this.domainRelativePath = "";
+						this.navigateToFolder(crumb.path, "back");
+					} else if (crumb.isDomainRelative) {
+						this.navigateToDomainRelativePath(crumb.path, "back");
+					} else {
+						this.navigateToFolder(crumb.path, "back");
+					}
 				});
 			});
-			if (this.step === "pick-category" && this.pendingDomainItem) {
-				trailEl.createSpan({
-					cls: "askfiles-breadcrumb-sep",
-					text: "›",
-				});
-				trailEl.createSpan({
-					cls: "askfiles-breadcrumb-item is-current",
-					text: this.pendingDomainItem.domainName,
-				});
-			}
 		} else if (this.step === "browse" && this.filterQuery.trim()) {
 			const trailEl = navLeft.createEl("nav", {
 				cls: "askfiles-breadcrumbs",
@@ -585,15 +744,28 @@ export class AskfilesView extends ItemView {
 	}
 
 	private renderPickCategoryStep(stage: HTMLElement): void {
-		const domain = this.pendingDomainItem;
-		if (!domain) {
+		if (!this.domainRelativePath) {
 			this.step = "browse";
+			this.renderBrowseStep(stage);
+			return;
+		}
+
+		const categories = this.folderEngine.getCategoriesForDomainPath(
+			this.domainRelativePath,
+		);
+		if (categories.length === 0) {
+			this.step = "browse";
+			this.domainRelativePath = "";
 			this.renderBrowseStep(stage);
 			return;
 		}
 
 		const { settings } = this.plugin.store;
 		const phrase = this.getStepPhrase();
+		const displayDomainTrail = this.domainRelativePath
+			.split("/")
+			.filter(Boolean)
+			.join(" › ");
 
 		const header = stage.createDiv({ cls: "askfiles-question-header" });
 		header.createEl("h1", {
@@ -602,13 +774,17 @@ export class AskfilesView extends ItemView {
 		});
 		header.createEl("p", {
 			cls: "askfiles-question-desc",
-			text: `Choose a category for ${domain.domainName}`,
+			text: `Choose a category for ${displayDomainTrail}`,
 		});
+
+		if (this.activeCardIndex >= categories.length) {
+			this.activeCardIndex = Math.max(0, categories.length - 1);
+		}
 
 		const scroller = stage.createDiv({ cls: "askfiles-card-scroller" });
 		const gridEl = scroller.createDiv({ cls: "askfiles-card-grid" });
 
-		domain.parents.forEach((parent, idx) => {
+		categories.forEach((parent, idx) => {
 			const isSelected = idx === this.activeCardIndex;
 			const cardEl = gridEl.createEl("button", {
 				cls: `askfiles-card ${isSelected ? "is-focused" : ""}`,
@@ -625,26 +801,24 @@ export class AskfilesView extends ItemView {
 				text: parent.categoryName,
 			});
 
-			const metaParts: string[] = [domain.domainName];
 			if (settings.showCardCounts) {
+				let countText = "";
 				if (parent.visibleSubfolderCount > 0) {
-					metaParts.push(
-						`${parent.visibleSubfolderCount} ${parent.visibleSubfolderCount === 1 ? "folder" : "folders"}`,
-					);
+					countText = `${parent.visibleSubfolderCount} ${parent.visibleSubfolderCount === 1 ? "folder" : "folders"}`;
 				} else if (parent.noteCount > 0) {
-					metaParts.push(
-						`${parent.noteCount} ${parent.noteCount === 1 ? "note" : "notes"}`,
-					);
+					countText = `${parent.noteCount} ${parent.noteCount === 1 ? "note" : "notes"}`;
+				}
+				if (countText) {
+					cardEl.createDiv({
+						cls: "askfiles-card-meta",
+						text: countText,
+					});
 				}
 			}
-			cardEl.createDiv({
-				cls: "askfiles-card-meta",
-				text: metaParts.join(" · "),
-			});
 
 			cardEl.addEventListener("click", () => {
-				this.pendingDomainItem = null;
-				this.navigateToFolder(parent.domainFolderPath, "forward");
+				this.activeCardIndex = idx;
+				this.openNamingStep(parent.domainFolderPath);
 			});
 		});
 	}
@@ -701,6 +875,7 @@ export class AskfilesView extends ItemView {
 			catBtn.addEventListener("click", () => {
 				if (this.startBrowseMode !== "category") {
 					this.startBrowseMode = "category";
+					this.domainRelativePath = "";
 					this.activeCardIndex = 0;
 					this.currentPhraseKey = "";
 					this.renderView();
@@ -718,6 +893,7 @@ export class AskfilesView extends ItemView {
 			domBtn.addEventListener("click", () => {
 				if (this.startBrowseMode !== "domain") {
 					this.startBrowseMode = "domain";
+					this.domainRelativePath = "";
 					this.activeCardIndex = 0;
 					this.currentPhraseKey = "";
 					this.renderView();
@@ -736,23 +912,22 @@ export class AskfilesView extends ItemView {
 
 		const actionCards: ActionCard[] = [];
 
-		if (atRoot && this.startBrowseMode === "domain") {
-			const rawDomains = this.folderEngine.getDomainItems();
+		if (
+			this.startBrowseMode === "domain" &&
+			(atRoot || this.domainRelativePath.length > 0)
+		) {
+			const rawDomains = this.folderEngine.getDomainItems(
+				this.domainRelativePath,
+			);
 			const filteredDomains = trimmedQuery
-				? rawDomains.filter(
-						(d) =>
-							d.domainName.toLowerCase().includes(trimmedQuery) ||
-							d.parents.some((p) =>
-								p.categoryName
-									.toLowerCase()
-									.includes(trimmedQuery),
-							),
+				? rawDomains.filter((d) =>
+						d.domainName.toLowerCase().includes(trimmedQuery),
 					)
 				: rawDomains;
 			for (const domain of filteredDomains) {
 				actionCards.push({ kind: "domain", domain });
 			}
-			if (rawDomains.length === 0 || !trimmedQuery) {
+			if (!atRoot || rawDomains.length === 0 || !trimmedQuery) {
 				actionCards.push({ kind: "save-here" });
 			}
 		} else {
@@ -853,6 +1028,7 @@ export class AskfilesView extends ItemView {
 					attr: {
 						type: "button",
 						"data-domain-name": domain.domainName,
+						"data-domain-path": domain.relativePath,
 					},
 				});
 
@@ -864,40 +1040,27 @@ export class AskfilesView extends ItemView {
 					text: domain.domainName,
 				});
 
-				const catLabel = domain.parents
-					.map((p) => p.categoryName)
-					.join(", ");
-				const metaParts: string[] = [catLabel];
 				if (settings.showCardCounts) {
+					let countText = "";
 					if (domain.totalVisibleSubfolders > 0) {
-						metaParts.push(
-							`${domain.totalVisibleSubfolders} ${domain.totalVisibleSubfolders === 1 ? "folder" : "folders"}`,
-						);
+						countText = `${domain.totalVisibleSubfolders} ${domain.totalVisibleSubfolders === 1 ? "folder" : "folders"}`;
 					} else if (domain.totalNotes > 0) {
-						metaParts.push(
-							`${domain.totalNotes} ${domain.totalNotes === 1 ? "note" : "notes"}`,
-						);
+						countText = `${domain.totalNotes} ${domain.totalNotes === 1 ? "note" : "notes"}`;
+					}
+					if (countText) {
+						cardEl.createDiv({
+							cls: "askfiles-card-meta",
+							text: countText,
+						});
 					}
 				}
-				cardEl.createDiv({
-					cls: "askfiles-card-meta",
-					text: metaParts.join(" · "),
-				});
 
 				cardEl.addEventListener("click", () => {
 					this.activeCardIndex = idx;
-					if (domain.parents.length === 1) {
-						this.navigateToFolder(
-							domain.parents[0]!.domainFolderPath,
-							"forward",
-						);
-					} else if (domain.parents.length > 1) {
-						this.pendingDomainItem = domain;
-						this.activeCardIndex = 0;
-						this.step = "pick-category";
-						this.slideDirection = "forward";
-						this.renderView();
-					}
+					this.navigateToDomainRelativePath(
+						domain.relativePath,
+						"forward",
+					);
 				});
 			} else if (entry.kind === "save-here") {
 				const cardEl = gridEl.createEl("button", {
@@ -918,9 +1081,20 @@ export class AskfilesView extends ItemView {
 						: `Save in ${this.getCurrentFolderDisplayName()}`,
 				});
 				cardEl.addEventListener("click", () => {
-					this.openNamingStep(this.currentFolderPath);
+					if (
+						this.startBrowseMode === "domain" &&
+						this.domainRelativePath
+					) {
+						this.activeCardIndex = 0;
+						this.step = "pick-category";
+						this.slideDirection = "forward";
+						this.renderView();
+					} else {
+						this.openNamingStep(this.currentFolderPath);
+					}
 				});
-			} else if (entry.kind === "new-folder") {
+			}
+ else if (entry.kind === "new-folder") {
 				const cardEl = gridEl.createEl("button", {
 					cls: `askfiles-card askfiles-card--action askfiles-card--new ${isSelected ? "is-focused" : ""}`,
 					attr: {
@@ -1623,18 +1797,31 @@ export class AskfilesView extends ItemView {
 			!evt.altKey
 		) {
 			evt.preventDefault();
-			this.openNamingStep(this.currentFolderPath);
+			if (
+				this.startBrowseMode === "domain" &&
+				this.domainRelativePath
+			) {
+				this.activeCardIndex = 0;
+				this.step = "pick-category";
+				this.slideDirection = "forward";
+				this.renderView();
+			} else {
+				this.openNamingStep(this.currentFolderPath);
+			}
 			return;
 		}
 
-		if (evt.key === "Backspace" && this.step === "browse") {
+		if (
+			evt.key === "Backspace" &&
+			(this.step === "browse" || this.step === "pick-category")
+		) {
 			evt.preventDefault();
 			this.navigateUpOneLevel();
 			return;
 		}
 
-		// 2D Arrow navigation across cards in browse step
-		if (this.step === "browse") {
+		// 2D Arrow navigation across cards in browse and pick-category steps
+		if (this.step === "browse" || this.step === "pick-category") {
 			const cards = Array.from(
 				this.contentEl.querySelectorAll<HTMLButtonElement>(
 					".askfiles-card",
@@ -1668,6 +1855,7 @@ export class AskfilesView extends ItemView {
 			}
 		}
 	}
+
 
 	private estimateGridColumns(cards: HTMLButtonElement[]): number {
 		if (cards.length <= 1) return 1;

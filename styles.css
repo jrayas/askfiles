@@ -278,9 +278,13 @@
 	justify-content: center;
 	text-align: left;
 	width: 100%;
+	min-width: 0;
 	height: auto;
 	min-height: 54px;
 	padding: var(--askfiles-card-pad-y) var(--askfiles-card-pad-x);
+	box-sizing: border-box;
+	overflow: hidden;
+	white-space: normal;
 	background-color: transparent;
 	border: none;
 	box-shadow: none;
@@ -314,6 +318,8 @@
 	display: flex;
 	align-items: center;
 	gap: 8px;
+	width: 100%;
+	min-width: 0;
 	font-size: var(--askfiles-card-title-size);
 	font-weight: 500;
 	color: var(--text-normal);
@@ -322,30 +328,45 @@
 .askfiles-card-icon {
 	color: var(--text-muted);
 	font-size: 0.95em;
+	flex-shrink: 0;
 }
 
 .askfiles-card-name {
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
 	font-size: var(--askfiles-card-title-size);
 	font-weight: 500;
 	color: var(--text-normal);
 }
 
 .askfiles-card-desc {
+	width: 100%;
+	min-width: 0;
 	margin-top: 4px;
+	overflow: hidden;
+	text-overflow: ellipsis;
 	font-size: 0.85rem;
 	color: var(--text-muted);
 }
 
 .askfiles-card-meta {
+	width: 100%;
+	min-width: 0;
 	margin-top: 4px;
+	overflow: hidden;
+	text-overflow: ellipsis;
 	font-size: 0.82rem;
 	color: var(--text-faint);
 }
 
 .askfiles-layout--list .askfiles-card-meta {
+	width: auto;
 	margin-top: 0;
 	margin-left: auto;
+	flex-shrink: 0;
 }
+
 
 .askfiles-card--action .askfiles-card-name {
 	color: var(--text-muted);

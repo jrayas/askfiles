@@ -2,6 +2,7 @@ import { App, normalizePath, prepareFuzzySearch, TFile, TFolder } from "obsidian
 import { normalizeFolderPath, SettingsStore } from "../settings/store";
 import type {
 	DomainCardItem,
+	DomainParentMatch,
 	FolderCardItem,
 	FolderRule,
 	RuleAction,
@@ -318,47 +319,73 @@ export class FolderEngine {
 	}
 
 	/**
-	 * Scans all visible second-level (Domain) folders across visible top-level Categories,
-	 * grouping domains by name so the user can start from Domain -> Category on the Home page.
+	 * Scans visible domain or subdomain folders at `parentRelativePath` across all visible
+	 * top-level Categories so the user can drill down `Domain -> Subdomain -> ... -> Category`.
 	 */
-	getDomainItems(ctx = this.getEvaluationContext()): DomainCardItem[] {
+	getDomainItems(
+		parentRelativePath = "",
+		ctx = this.getEvaluationContext(),
+	): DomainCardItem[] {
 		const root = this.getEffectiveRootFolder();
 		const categories = this.getVisibleSubfolders(root, ctx);
-		const grouped = new Map<string, DomainCardItem>();
+		const grouped = new Map<
+			string,
+			{ item: DomainCardItem; childNames: Set<string> }
+		>();
+		const relSegments = normalizeFolderPath(parentRelativePath)
+			.split("/")
+			.filter(Boolean);
 
 		for (const cat of categories) {
 			const catNorm = normalizeFolderPath(cat.path);
-			const domains = this.getVisibleSubfolders(cat, ctx);
-			for (const dom of domains) {
-				const domNorm = normalizeFolderPath(dom.path);
-				const childSubfolders = this.getVisibleSubfolders(dom, ctx);
-				const noteCount = this.getDirectNoteCount(dom);
-				const key = dom.name.toLowerCase();
+			const baseFolder = this.resolveRelativeVisibleSubfolder(
+				cat,
+				relSegments,
+				ctx,
+			);
+			if (!baseFolder) continue;
 
-				let existing = grouped.get(key);
-				if (!existing) {
-					existing = {
-						domainName: dom.name,
-						parents: [],
-						totalVisibleSubfolders: 0,
-						totalNotes: 0,
+			const children = this.getVisibleSubfolders(baseFolder, ctx);
+			for (const child of children) {
+				const childNorm = normalizeFolderPath(child.path);
+				const grandChildren = this.getVisibleSubfolders(child, ctx);
+				const noteCount = this.getDirectNoteCount(child);
+				const key = child.name.toLowerCase();
+				const nextRelPath = relSegments.length
+					? `${relSegments.join("/")}/${child.name}`
+					: child.name;
+
+				let entry = grouped.get(key);
+				if (!entry) {
+					entry = {
+						item: {
+							domainName: child.name,
+							relativePath: nextRelPath,
+							parents: [],
+							totalVisibleSubfolders: 0,
+							totalNotes: 0,
+						},
+						childNames: new Set<string>(),
 					};
-					grouped.set(key, existing);
+					grouped.set(key, entry);
 				}
 
-				existing.parents.push({
+				entry.item.parents.push({
 					categoryName: cat.name,
 					categoryPath: catNorm,
-					domainFolderPath: domNorm,
-					visibleSubfolderCount: childSubfolders.length,
+					domainFolderPath: childNorm,
+					visibleSubfolderCount: grandChildren.length,
 					noteCount,
 				});
-				existing.totalVisibleSubfolders += childSubfolders.length;
-				existing.totalNotes += noteCount;
+				for (const gc of grandChildren) {
+					entry.childNames.add(gc.name.toLowerCase());
+				}
+				entry.item.totalVisibleSubfolders = entry.childNames.size;
+				entry.item.totalNotes += noteCount;
 			}
 		}
 
-		const items = Array.from(grouped.values());
+		const items = Array.from(grouped.values()).map((e) => e.item);
 		items.sort((a, b) =>
 			a.domainName.localeCompare(b.domainName, undefined, {
 				numeric: true,
@@ -366,6 +393,66 @@ export class FolderEngine {
 		);
 		return items;
 	}
+
+	/**
+	 * Resolves all visible top-level Categories that contain `domainRelativePath`
+	 * (`<Category>/<Domain>/<Subdomain>/...`).
+	 */
+	getCategoriesForDomainPath(
+		domainRelativePath: string,
+		ctx = this.getEvaluationContext(),
+	): DomainParentMatch[] {
+		const root = this.getEffectiveRootFolder();
+		const categories = this.getVisibleSubfolders(root, ctx);
+		const relSegments = normalizeFolderPath(domainRelativePath)
+			.split("/")
+			.filter(Boolean);
+		if (relSegments.length === 0) return [];
+
+		const matches: DomainParentMatch[] = [];
+		for (const cat of categories) {
+			const target = this.resolveRelativeVisibleSubfolder(
+				cat,
+				relSegments,
+				ctx,
+			);
+			if (!target) continue;
+			const childSubfolders = this.getVisibleSubfolders(target, ctx);
+			const noteCount = this.getDirectNoteCount(target);
+			matches.push({
+				categoryName: cat.name,
+				categoryPath: normalizeFolderPath(cat.path),
+				domainFolderPath: normalizeFolderPath(target.path),
+				visibleSubfolderCount: childSubfolders.length,
+				noteCount,
+			});
+		}
+		matches.sort((a, b) =>
+			a.categoryName.localeCompare(b.categoryName, undefined, {
+				numeric: true,
+			}),
+		);
+		return matches;
+	}
+
+	private resolveRelativeVisibleSubfolder(
+		startFolder: TFolder,
+		relSegments: string[],
+		ctx: RuleEvaluationContext,
+	): TFolder | null {
+		let current: TFolder = startFolder;
+		for (const seg of relSegments) {
+			const segLower = seg.toLowerCase();
+			const children = this.getVisibleSubfolders(current, ctx);
+			const found = children.find(
+				(c) => c.name.toLowerCase() === segLower,
+			);
+			if (!found) return null;
+			current = found;
+		}
+		return current;
+	}
+
 
 	getAllVisibleFolders(ctx = this.getEvaluationContext()): FolderCardItem[] {
 		const root = this.getEffectiveRootFolder();
