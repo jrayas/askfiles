@@ -109,6 +109,9 @@ export const DEFAULT_SETTINGS: AskfilesSettings = {
 	openAfterCreating: true,
 
 	lockFolderCreation: false,
+	showExistingFiles: false,
+	searchFilesGlobally: true,
+	showSearchDropdown: true,
 	globalLayout: { ...DEFAULT_LAYOUT },
 	perFolderLayouts: {},
 	showCardCounts: true,

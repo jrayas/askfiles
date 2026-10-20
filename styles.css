@@ -326,6 +326,8 @@
 }
 
 .askfiles-card-icon {
+	display: inline-flex;
+	align-items: center;
 	color: var(--text-muted);
 	font-size: 0.95em;
 	flex-shrink: 0;
@@ -379,13 +381,53 @@
 
 /* Quick-Jump Results & Footer Bar */
 
-.askfiles-quickjump-results {
-	max-width: 560px;
-	margin: 20px auto 0;
-	padding-top: 12px;
+.askfiles-search-wrap {
+	position: relative;
+	width: 100%;
+	max-width: 520px;
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	align-items: center;
+}
+
+.askfiles-dropdown-results,
+.askfiles-quickjump-results {
+	width: 100%;
+	max-width: 520px;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+.askfiles-dropdown-results {
+	position: absolute;
+	bottom: calc(100% + 8px);
+	left: 0;
+	right: 0;
+	max-height: 280px;
+	overflow-y: auto;
+	background-color: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+	border-radius: var(--radius-m);
+	padding: 8px 6px;
+	z-index: 100;
+}
+
+.askfiles-card-scroller.is-search-dimmed .askfiles-card {
+	opacity: 0.22;
+	pointer-events: none;
+	transition: opacity 160ms ease;
+}
+
+.askfiles-card-scroller.is-search-dimmed .askfiles-card.is-focused {
+	box-shadow: none;
+	background-color: transparent;
+}
+
+.askfiles-quickjump-results {
+	margin: 20px auto 0;
+	padding-top: 12px;
 }
 
 .askfiles-quickjump-heading {
@@ -410,6 +452,7 @@
 	color: var(--text-normal);
 	text-align: left;
 	cursor: pointer;
+	transition: background-color 100ms ease;
 }
 
 .askfiles-root button.askfiles-quickjump-item:hover,
@@ -417,9 +460,27 @@
 	background-color: var(--background-modifier-hover);
 }
 
+.askfiles-quickjump-left {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+	overflow: hidden;
+}
+
+.askfiles-quickjump-path {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.88rem;
+	color: var(--text-normal);
+}
+
 .askfiles-quickjump-meta {
 	font-size: 0.8rem;
 	color: var(--text-faint);
+	margin-left: 8px;
+	flex-shrink: 0;
 }
 
 .askfiles-quickjump-hint {
@@ -439,7 +500,7 @@
 
 .askfiles-root input.askfiles-search-input {
 	width: 100%;
-	max-width: 420px;
+	max-width: 520px;
 	height: auto;
 	padding: 10px 14px;
 	background: transparent;

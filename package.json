@@ -1,6 +1,6 @@
 {
 	"name": "askfiles",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"description": "Create notes through a calm, question-by-question flow using your vault folders as the choices.",
 	"main": "main.js",
 	"type": "module",

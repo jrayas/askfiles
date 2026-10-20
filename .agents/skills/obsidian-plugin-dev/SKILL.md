@@ -44,7 +44,7 @@ Then skim https://obsidian.md/changelog/ "Developers" sections since the snapsho
 4. **Write features** using [reference/api-cheatsheet.md](reference/api-cheatsheet.md) (views, settings, commands, metadata/links, events, deprecations).
 5. **Mobile, workers, Wasm**: [reference/mobile-workers-wasm.md](reference/mobile-workers-wasm.md).
 6. **Pre-release check**: [reference/review-checklist.md](reference/review-checklist.md).
-7. **Release** with the sample's GitHub Action (tag = version, no `v`), then **submit** at community.obsidian.md. Fix automated-review errors by publishing a new release.
+7. **Release** via `.github/workflows/release.yml` with `actions/attest-build-provenance@v2` (tag = version, no `v`; **never** upload local files via `gh release create` or the review bot flags `Missing GitHub artifact attestations for release assets`), then **submit** at community.obsidian.md. Fix automated-review errors by publishing a new release.
 
 ## Evidence discipline
 State whether a claim is from official docs/typings (verified), third-party (secondary) or unverified. Never claim something works on mobile without testing on a device or `app.emulateMobile(true)`; say "untested" otherwise.

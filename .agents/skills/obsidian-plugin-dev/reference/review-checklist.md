@@ -5,6 +5,7 @@
 - [ ] `npm run lint` passes with `obsidianmd.configs.recommended` (no errors; warnings reviewed).
 - [ ] `styles.css` passes stylelint with `stylelint-no-unsupported-browser-features` and no duplicate properties, zero warnings (see build-and-lint.md, CSS lint).
 - [ ] Tag == `manifest.version` (`x.y.z`, no `v`); assets `main.js`, `manifest.json`, optional `styles.css`.
+- [ ] `.github/workflows/release.yml` is committed with `actions/attest-build-provenance@v2` (`permissions: contents: write, id-token: write, attestations: write`) and release assets were built and attested by GitHub Actions (never uploaded manually or via local `gh release create`, which causes `Missing GitHub artifact attestations for release assets`).
 - [ ] Everything the plugin needs at runtime is inside those files.
 - [ ] `versions.json` updated; `manifest.json` committed on the default branch.
 - [ ] `README.md` explains purpose and usage and discloses: payments, accounts, network use (which services, why), files outside the vault, ads, server-side telemetry (with privacy policy), closed source.

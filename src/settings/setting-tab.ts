@@ -362,6 +362,33 @@ export class AskfilesSettingTab extends PluginSettingTab {
 						},
 					},
 					{
+						name: "Show existing files",
+						desc: "Show existing notes inside the current folder or domain so you can open them directly.",
+						control: {
+							type: "toggle",
+							key: "showExistingFiles",
+							defaultValue: false,
+						},
+					},
+					{
+						name: "Search files global",
+						desc: "When typing in the search bar with existing files enabled, search all visible notes across the entire vault instead of only the current level.",
+						control: {
+							type: "toggle",
+							key: "searchFilesGlobally",
+							defaultValue: true,
+						},
+					},
+					{
+						name: "Search dropdown",
+						desc: "Show the quick-jump dropdown popup list when typing in the search field.",
+						control: {
+							type: "toggle",
+							key: "showSearchDropdown",
+							defaultValue: false,
+						},
+					},
+					{
 						name: "Keyboard shortcuts",
 						desc: "Customise keys used inside the note creator.",
 						render: (setting: Setting) => {

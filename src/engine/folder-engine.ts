@@ -1,10 +1,11 @@
-import { App, normalizePath, prepareFuzzySearch, TFile, TFolder } from "obsidian";
+import { App, normalizePath, TFile, TFolder } from "obsidian";
 import { normalizeFolderPath, SettingsStore } from "../settings/store";
 import type {
 	DomainCardItem,
 	DomainParentMatch,
 	FolderCardItem,
 	FolderRule,
+	NoteCardItem,
 	RuleAction,
 	RuleScope,
 	ScanMode,
@@ -145,6 +146,100 @@ export function migratePathOnRename(
 	return existingPath;
 }
 
+export interface SearchMatchResult {
+	matched: boolean;
+	score: number;
+}
+
+export function scoreSearchMatch(
+	rawQuery: string,
+	name: string,
+	path = "",
+): SearchMatchResult {
+	const q = rawQuery.trim().toLowerCase();
+	if (!q) return { matched: false, score: 0 };
+
+	const nameLower = name.toLowerCase();
+	const pathLower = path.toLowerCase();
+
+	// 1. Exact match on name
+	if (nameLower === q) {
+		return { matched: true, score: 10000 };
+	}
+
+	// 2. Name starts with query (Prefix match)
+	if (nameLower.startsWith(q)) {
+		return { matched: true, score: 5000 + Math.max(0, 50 - name.length) };
+	}
+
+	// 3. Word-boundary prefix in name: any word in the name starts with query
+	const words = nameLower.split(/[\s\-_.\\/]+/);
+	for (const w of words) {
+		if (w.startsWith(q)) {
+			return {
+				matched: true,
+				score: 3500 + Math.max(0, 50 - name.length),
+			};
+		}
+	}
+
+	// 4. Name contains query as a contiguous substring
+	const nameIdx = nameLower.indexOf(q);
+	if (nameIdx !== -1) {
+		return {
+			matched: true,
+			score: 2000 - nameIdx + Math.max(0, 50 - name.length),
+		};
+	}
+
+	// 5. Acronym / initials match on name (for query length >= 2)
+	if (q.length >= 2 && words.length >= q.length) {
+		const initials = words.map((w) => w[0] || "").join("");
+		if (initials.startsWith(q)) {
+			return { matched: true, score: 1800 };
+		}
+	}
+
+	// 6. Path matching: ONLY if query explicitly includes a path separator (e.g. "knowledge/physics", "phys/opt")
+	if (pathLower && (q.includes("/") || q.includes("›") || q.includes(">"))) {
+		const normQ = q.replace(/\s*[›>]\s*/g, "/");
+		const normPath = pathLower.replace(/\s*[›>]\s*/g, "/");
+		if (normPath.includes(normQ)) {
+			return { matched: true, score: 2500 };
+		}
+	}
+
+	// 7. For queries >= 3 characters, allow high-quality fuzzy subsequence on name ONLY
+	// (Never on short 1-2 char queries like "re", and requires at least 2 consecutive characters matching)
+	if (q.length >= 3) {
+		let qIdx = 0;
+		let consecutive = 0;
+		let maxConsecutive = 0;
+		let firstMatchIdx = -1;
+
+		for (let i = 0; i < nameLower.length; i++) {
+			if (nameLower[i] === q[qIdx]) {
+				if (firstMatchIdx === -1) firstMatchIdx = i;
+				qIdx++;
+				consecutive++;
+				if (consecutive > maxConsecutive) maxConsecutive = consecutive;
+				if (qIdx === q.length) break;
+			} else {
+				consecutive = 0;
+			}
+		}
+
+		if (qIdx === q.length && maxConsecutive >= 2) {
+			return {
+				matched: true,
+				score: 200 + maxConsecutive * 20 - firstMatchIdx,
+			};
+		}
+	}
+
+	return { matched: false, score: 0 };
+}
+
 export class FolderEngine {
 	constructor(
 		private app: App,
@@ -213,6 +308,24 @@ export class FolderEngine {
 			}
 		}
 		return count;
+	}
+
+	getDirectNotesForFolder(folder: TFolder): NoteCardItem[] {
+		const folderNorm = normalizeFolderPath(folder.path);
+		const notes: NoteCardItem[] = [];
+		for (const child of folder.children) {
+			if (child instanceof TFile && child.extension === "md") {
+				notes.push({
+					path: normalizePath(child.path),
+					basename: child.basename,
+					folderPath: folderNorm,
+				});
+			}
+		}
+		notes.sort((a, b) =>
+			a.basename.localeCompare(b.basename, undefined, { numeric: true }),
+		);
+		return notes;
 	}
 
 	/**
@@ -435,6 +548,51 @@ export class FolderEngine {
 		return matches;
 	}
 
+	/**
+	 * Collects all direct markdown notes inside `domainRelativePath` across all visible
+	 * top-level Categories (`<Category>/<Domain>/<Subdomain>/...`).
+	 */
+	getNotesForDomainPath(
+		domainRelativePath: string,
+		ctx = this.getEvaluationContext(),
+	): NoteCardItem[] {
+		const root = this.getEffectiveRootFolder();
+		const categories = this.getVisibleSubfolders(root, ctx);
+		const relSegments = normalizeFolderPath(domainRelativePath)
+			.split("/")
+			.filter(Boolean);
+		if (relSegments.length === 0) return [];
+
+		const notes: NoteCardItem[] = [];
+		for (const cat of categories) {
+			const target = this.resolveRelativeVisibleSubfolder(
+				cat,
+				relSegments,
+				ctx,
+			);
+			if (!target) continue;
+			const directNotes = this.getDirectNotesForFolder(target);
+			for (const note of directNotes) {
+				notes.push({
+					...note,
+					categoryName: cat.name,
+				});
+			}
+		}
+		notes.sort((a, b) => {
+			const nameDiff = a.basename.localeCompare(b.basename, undefined, {
+				numeric: true,
+			});
+			if (nameDiff !== 0) return nameDiff;
+			return (a.categoryName ?? "").localeCompare(
+				b.categoryName ?? "",
+				undefined,
+				{ numeric: true },
+			);
+		});
+		return notes;
+	}
+
 	private resolveRelativeVisibleSubfolder(
 		startFolder: TFolder,
 		relSegments: string[],
@@ -510,25 +668,80 @@ export class FolderEngine {
 		const trimmed = query.trim();
 		if (!trimmed) return [];
 		const all = this.getAllVisibleFolders();
-		const fuzzy = prepareFuzzySearch(trimmed);
 
 		const scored: Array<{ item: FolderCardItem; score: number }> = [];
 		for (const item of all) {
-			const matchDisplay = fuzzy(item.displayPath);
-			const matchPath = fuzzy(item.path);
-			const best =
-				matchDisplay && matchPath
-					? matchDisplay.score >= matchPath.score
-						? matchDisplay
-						: matchPath
-					: (matchDisplay ?? matchPath);
-			if (best) {
-				scored.push({ item, score: best.score });
+			const res = scoreSearchMatch(trimmed, item.name, item.displayPath);
+			if (res.matched) {
+				scored.push({ item, score: res.score });
 			}
 		}
 
 		scored.sort((a, b) => b.score - a.score);
 		return scored.slice(0, 12).map((s) => s.item);
+	}
+
+	getAllVisibleNotes(ctx = this.getEvaluationContext()): NoteCardItem[] {
+		const root = this.getEffectiveRootFolder();
+		const items: NoteCardItem[] = [];
+
+		const walk = (folder: TFolder): void => {
+			for (const child of folder.children) {
+				if (child instanceof TFile && child.extension === "md") {
+					const folderNorm = normalizeFolderPath(folder.path);
+					items.push({
+						path: normalizePath(child.path),
+						basename: child.basename,
+						folderPath: folderNorm,
+						folderDisplayPath: folderNorm
+							? folderNorm.split("/").join(" › ")
+							: "Home",
+					});
+				} else if (child instanceof TFolder) {
+					if (
+						isDotOrConfigPath(
+							child.path,
+							ctx.configDir,
+							ctx.hideDotFolders,
+						)
+					) {
+						continue;
+					}
+					const evalResult = evaluateFolderVisibility(child.path, ctx);
+					if (evalResult.visible) {
+						walk(child);
+					}
+				}
+			}
+		};
+
+		walk(root);
+		items.sort((a, b) =>
+			a.basename.localeCompare(b.basename, undefined, {
+				numeric: true,
+			}),
+		);
+		return items;
+	}
+
+	searchGlobalNotes(
+		query: string,
+		ctx = this.getEvaluationContext(),
+	): NoteCardItem[] {
+		const trimmed = query.trim();
+		if (!trimmed) return [];
+		const all = this.getAllVisibleNotes(ctx);
+
+		const scored: Array<{ item: NoteCardItem; score: number }> = [];
+		for (const item of all) {
+			const res = scoreSearchMatch(trimmed, item.basename);
+			if (res.matched) {
+				scored.push({ item, score: res.score });
+			}
+		}
+
+		scored.sort((a, b) => b.score - a.score);
+		return scored.slice(0, 24).map((s) => s.item);
 	}
 
 	buildVaultTreeNodes(

@@ -40,6 +40,9 @@ export class GearPanel {
 
 		const layout = this.store.getEffectiveLayout(folderPath);
 		const isLocked = this.store.settings.lockFolderCreation;
+		const showExistingFiles = this.store.settings.showExistingFiles;
+		const searchFilesGlobally = this.store.settings.searchFilesGlobally;
+		const showSearchDropdown = this.store.settings.showSearchDropdown;
 
 		const header = container.createDiv({ cls: "askfiles-gear-header" });
 		header.createEl("h3", {
@@ -92,6 +95,93 @@ export class GearPanel {
 			if (evt.key === "Enter" || evt.key === " ") {
 				evt.preventDefault();
 				toggleLock();
+			}
+		});
+
+		const showFilesRow = foldersGroup.createDiv({
+			cls: "askfiles-gear-row askfiles-gear-row--interactive",
+			attr: {
+				role: "switch",
+				"aria-checked": String(showExistingFiles),
+				tabindex: "0",
+			},
+		});
+		showFilesRow.createSpan({
+			cls: "askfiles-gear-row-name",
+			text: "Show existing files",
+		});
+		showFilesRow.createSpan({
+			cls: "askfiles-gear-row-value",
+			text: showExistingFiles ? "● On" : "○ Off",
+		});
+		const toggleShowFiles = (): void => {
+			void this.store.update({
+				showExistingFiles: !this.store.settings.showExistingFiles,
+			});
+		};
+		showFilesRow.addEventListener("click", toggleShowFiles);
+		showFilesRow.addEventListener("keydown", (evt) => {
+			if (evt.key === "Enter" || evt.key === " ") {
+				evt.preventDefault();
+				toggleShowFiles();
+			}
+		});
+
+		const globalSearchRow = foldersGroup.createDiv({
+			cls: "askfiles-gear-row askfiles-gear-row--interactive",
+			attr: {
+				role: "switch",
+				"aria-checked": String(searchFilesGlobally),
+				tabindex: "0",
+			},
+		});
+		globalSearchRow.createSpan({
+			cls: "askfiles-gear-row-name",
+			text: "Search files global",
+		});
+		globalSearchRow.createSpan({
+			cls: "askfiles-gear-row-value",
+			text: searchFilesGlobally ? "● On" : "○ Off",
+		});
+		const toggleGlobalSearch = (): void => {
+			void this.store.update({
+				searchFilesGlobally: !this.store.settings.searchFilesGlobally,
+			});
+		};
+		globalSearchRow.addEventListener("click", toggleGlobalSearch);
+		globalSearchRow.addEventListener("keydown", (evt) => {
+			if (evt.key === "Enter" || evt.key === " ") {
+				evt.preventDefault();
+				toggleGlobalSearch();
+			}
+		});
+
+		const searchDropdownRow = foldersGroup.createDiv({
+			cls: "askfiles-gear-row askfiles-gear-row--interactive",
+			attr: {
+				role: "switch",
+				"aria-checked": String(showSearchDropdown),
+				tabindex: "0",
+			},
+		});
+		searchDropdownRow.createSpan({
+			cls: "askfiles-gear-row-name",
+			text: "Search dropdown",
+		});
+		searchDropdownRow.createSpan({
+			cls: "askfiles-gear-row-value",
+			text: showSearchDropdown ? "● On" : "○ Off",
+		});
+		const toggleSearchDropdown = (): void => {
+			void this.store.update({
+				showSearchDropdown: !this.store.settings.showSearchDropdown,
+			});
+		};
+		searchDropdownRow.addEventListener("click", toggleSearchDropdown);
+		searchDropdownRow.addEventListener("keydown", (evt) => {
+			if (evt.key === "Enter" || evt.key === " ") {
+				evt.preventDefault();
+				toggleSearchDropdown();
 			}
 		});
 

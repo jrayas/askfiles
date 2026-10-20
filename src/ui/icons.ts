@@ -10,6 +10,7 @@ export type AskfilesIconName =
 	| "plus"
 	| "close"
 	| "folder"
+	| "file"
 	| "check";
 
 /**
@@ -104,6 +105,12 @@ export function renderLineIcon(
 			addPath(
 				"M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z",
 			);
+			break;
+		case "file":
+			addPath(
+				"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z",
+			);
+			addPath("M14 2v6h6");
 			break;
 		case "check":
 			addPath("M20 6L9 17l-5-5");

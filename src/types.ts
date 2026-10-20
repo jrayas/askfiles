@@ -70,6 +70,9 @@ export interface AskfilesSettings {
 	openAfterCreating: boolean;
 
 	lockFolderCreation: boolean;
+	showExistingFiles: boolean;
+	searchFilesGlobally: boolean;
+	showSearchDropdown: boolean;
 	globalLayout: LayoutConfig;
 	perFolderLayouts: Record<string, Partial<LayoutConfig>>;
 	showCardCounts: boolean;
@@ -145,4 +148,13 @@ export interface DomainCardItem {
 	totalVisibleSubfolders: number;
 	totalNotes: number;
 }
+
+export interface NoteCardItem {
+	path: string;
+	basename: string;
+	folderPath: string;
+	folderDisplayPath?: string;
+	categoryName?: string;
+}
+
 
